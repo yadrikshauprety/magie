@@ -1,16 +1,46 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import SharkTankPopup from "@/components/sharkgame/SharkTankPopup";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const Index = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="relative min-h-screen overflow-hidden">
+      {/* Mock "host" page — pretend this is your LLM testing UI */}
+      <div className="mx-auto max-w-3xl px-6 py-16">
+        <div className="rounded-3xl border-[3px] border-[hsl(var(--ink))] bg-card p-8 text-card-foreground comic-shadow-lg">
+          <h1 className="mb-2 text-4xl font-black">🦈 Shark Tank: Maggi Edition</h1>
+          <p className="mb-4 text-muted-foreground">
+            A drop-in popup game (Grammarly / Clippy style) for any React project.
+            While your LLM is thinking, pitch your Maggi crisis to the Sharks.
+          </p>
+
+          <div className="rounded-xl border-[3px] border-dashed border-[hsl(var(--ink))]/40 bg-muted p-4">
+            <p className="text-sm font-semibold">How to drop into any project:</p>
+            <pre className="mt-2 overflow-x-auto rounded-lg bg-[hsl(var(--ink))] p-3 text-xs text-white">
+{`import SharkTankPopup from "@/components/sharkgame/SharkTankPopup";
+
+// anywhere in your app:
+<SharkTankPopup />`}
+            </pre>
+            <p className="mt-3 text-sm text-muted-foreground">
+              👉 Click the floating 🦈 button at the bottom-right to start the pitch.
+            </p>
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            {["Confident pitch 🎤", "5 Shark roasts 🔥", "Choose your ending 🎬"].map((f) => (
+              <div
+                key={f}
+                className="rounded-xl border-[3px] border-[hsl(var(--ink))] bg-accent px-3 py-3 text-center text-sm font-bold text-[hsl(var(--ink))] comic-shadow"
+              >
+                {f}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <SharkTankPopup />
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
