@@ -197,7 +197,7 @@ function Stage({ phase }: { phase: Extract<Phase, { kind: "intro" | "shark" | "r
           <ActiveShark shark={activeShark!} talking={isShark} />
         )}
         {sharkLine && (
-          <SpeechBubble key={`s-${phase.index}`} side="left" tone="shark">
+          <SpeechBubble key={`s-${(phase as any).index}`} side="left" tone="shark">
             <span className="font-black">{activeShark!.name}:</span> {sharkLine}
           </SpeechBubble>
         )}
