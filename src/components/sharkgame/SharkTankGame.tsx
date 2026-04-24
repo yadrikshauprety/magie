@@ -175,20 +175,22 @@ function ModeMenu({ onPickShark, onPickKbc }: { onPickShark: () => void; onPickK
   return (
     <div className="anim-pop flex flex-col items-center gap-5 py-6">
       <h2 className="text-stroke text-center text-2xl font-black text-white sm:text-3xl">
-        Bored? Pick your destiny.
+        The Maggi Cinematic Universe
       </h2>
       <p className="text-center text-sm font-semibold text-white/85">
-        Two arenas. Two ways to embarrass yourself on national television.
+        4 levels. 1 missing packet. Zero justice.
+        <br />
+        <span className="text-white/70">Drawer → Shark Tank → KBC → Supreme Court.</span>
       </p>
       <div className="grid w-full gap-4 sm:grid-cols-2">
         <button
           onClick={onPickShark}
           className="group flex flex-col items-center gap-2 rounded-2xl border-[3px] border-[hsl(var(--ink))] bg-card px-4 py-6 text-card-foreground comic-shadow transition-transform hover:-translate-y-1 hover:rotate-[-1deg] hover:bg-accent"
         >
-          <span className="text-6xl transition-transform group-hover:scale-125">🦈</span>
-          <span className="text-stroke text-lg font-black">SHARK TANK</span>
+          <span className="text-6xl transition-transform group-hover:scale-125">🌙</span>
+          <span className="text-stroke text-lg font-black">START FROM LEVEL 1</span>
           <span className="text-center text-xs font-bold">
-            Pitch your Maggi crisis to 5 billionaires. Get roasted in HD.
+            Drawer khaali hai. Pitch karo, KBC khelo, court me jao. Full saga.
           </span>
         </button>
         <button
@@ -196,9 +198,9 @@ function ModeMenu({ onPickShark, onPickKbc }: { onPickShark: () => void; onPickK
           className="group flex flex-col items-center gap-2 rounded-2xl border-[3px] border-[hsl(var(--ink))] bg-card px-4 py-6 text-card-foreground comic-shadow transition-transform hover:-translate-y-1 hover:rotate-[1deg] hover:bg-accent"
         >
           <span className="text-6xl transition-transform group-hover:scale-125">🎬</span>
-          <span className="text-stroke text-lg font-black">KAUN BANEGA CROREPATI</span>
+          <span className="text-stroke text-lg font-black">SKIP TO KBC</span>
           <span className="text-center text-xs font-bold">
-            5 sawaal. Bachchan sahab. ₹7 crore — ya brahmand ka chakkar.
+            Bachchan sahab seedha. 5 sawaal. ₹7 crore — ya brahmand ka chakkar.
           </span>
         </button>
       </div>
