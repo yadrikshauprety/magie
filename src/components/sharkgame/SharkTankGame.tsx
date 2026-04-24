@@ -4,8 +4,11 @@ import { RotateCcw, Volume2, VolumeX, X } from "lucide-react";
 import pitcherIdle from "@/assets/pitcher.png";
 import pitcherCry from "@/assets/pitcher-crying.png";
 import pitcherShock from "@/assets/pitcher-shock.png";
+import level1Void from "@/assets/level1-void.png";
 import { Beat, buildGraph, Mood, SHARK_ORDER, SHARKS, SharkId } from "./sharkData";
+import { motion, AnimatePresence } from "framer-motion";
 import { useVoice } from "./useVoice";
+import { getGeminiResponse } from "@/lib/gemini";
 import KbcGame from "./KbcGame";
 
 interface Props { onClose: () => void; }
@@ -16,6 +19,8 @@ const PITCHER_IMG: Record<Mood, string> = {
   smug: pitcherIdle,
   cry: pitcherCry,
   shock: pitcherShock,
+  sleeping: level1Void,
+  opening: level1Void,
 };
 
 type View =
@@ -23,6 +28,7 @@ type View =
   | { kind: "video" }
   | { kind: "playing"; nodeId: string; beats: Beat[]; idx: number; nextNodeId: string }
   | { kind: "choosing"; nodeId: string }
+  | { kind: "typing"; nodeId: string; nextNodeId: string }
   | { kind: "kbc" };
 
 export default function SharkTankGame({ onClose }: Props) {
@@ -65,10 +71,35 @@ export default function SharkTankGame({ onClose }: Props) {
     const b = node.branches.find((x) => x.id === branchId);
     if (!b) return;
     sfx(880, 0.08, "triangle");
+    
+    if (branchId === "type") {
+      setView({ kind: "typing", nodeId: view.nodeId, nextNodeId: b.next ?? "exit" });
+      return;
+    }
+
     if (b.beats.length === 0) {
       enterNode(b.next ?? "exit");
     } else {
       setView({ kind: "playing", nodeId: view.nodeId, beats: b.beats, idx: 0, nextNodeId: b.next ?? "exit" });
+    }
+  };
+
+  const submitTyping = async (text: string) => {
+    if (view.kind !== "typing") return;
+    const nodeId = view.nodeId;
+    const nextNodeId = view.nextNodeId;
+    
+    try {
+      const aiBeats = await getGeminiResponse(text);
+      setView({ kind: "playing", nodeId, beats: aiBeats, idx: 0, nextNodeId });
+    } catch (err: any) {
+      setView({ 
+        kind: "playing", 
+        nodeId, 
+        beats: [{ speaker: "narrator", text: err.message || "Gemini connection failed." }], 
+        idx: 0, 
+        nextNodeId 
+      });
     }
   };
 
@@ -125,20 +156,10 @@ export default function SharkTankGame({ onClose }: Props) {
         <div className="relative z-10 flex items-center justify-between border-b-[3px] border-[hsl(var(--ink))] bg-accent px-4 py-2">
           <div className="flex items-center gap-2">
             <span className="text-2xl">
-              {view.kind === "kbc" ? "🎬"
-                : view.kind === "playing" || view.kind === "choosing"
-                ? (view.nodeId === "drawer" ? "🌙"
-                  : view.nodeId === "court" || view.nodeId === "verdict" ? "⚖️"
-                  : "🦈")
-                : "🦈"}
+              {view.kind === "kbc" ? "🎬" : "🦈"}
             </span>
-            <h2 className="text-stroke text-base font-black tracking-wide text-white sm:text-xl">
-              {view.kind === "kbc" ? "LEVEL 3 — KBC: MAGGI EDITION"
-                : view.kind === "playing" || view.kind === "choosing"
-                ? (view.nodeId === "drawer" ? "LEVEL 1 — THE DRAWER"
-                  : view.nodeId === "court" || view.nodeId === "verdict" ? "LEVEL 4 — SUPREME COURT"
-                  : "LEVEL 2 — SHARK TANK")
-                : "MAGGI CINEMATIC UNIVERSE"}
+            <h2 className="font-cinematic text-stroke text-base font-black tracking-wide text-white sm:text-xl uppercase">
+              {view.kind === "kbc" ? "LEVEL 3 — KBC: MAGGI EDITION" : "MAGGI CINEMATIC UNIVERSE"}
             </h2>
           </div>
           <div className="flex items-center gap-1">
@@ -173,6 +194,9 @@ export default function SharkTankGame({ onClose }: Props) {
               onPick={pickBranch}
             />
           )}
+          {view.kind === "typing" && (
+            <TypingScreen onSubmit={submitTyping} onCancel={() => setView({ kind: "choosing", nodeId: view.nodeId })} />
+          )}
           {view.kind === "kbc" && (
             <KbcGame onClose={onClose} onComplete={() => enterNode("court")} speak={speak} />
           )}
@@ -182,45 +206,49 @@ export default function SharkTankGame({ onClose }: Props) {
   );
 }
 
-/* ───────────── Mode picker ───────────── */
 function ModeMenu({ onPickShark, onPickKbc }: { onPickShark: () => void; onPickKbc: () => void }) {
   return (
-    <div className="anim-pop flex flex-col items-center gap-5 py-6">
-      <h2 className="text-stroke text-center text-2xl font-black text-white sm:text-3xl">
-        The Maggi Cinematic Universe
-      </h2>
-      <p className="text-center text-sm font-semibold text-white/85">
-        4 levels. 1 missing packet. Zero justice.
-        <br />
-        <span className="text-white/70">Drawer → Shark Tank → KBC → Supreme Court.</span>
-      </p>
-      <div className="grid w-full gap-4 sm:grid-cols-2">
-        <button
-          onClick={onPickShark}
-          className="group flex flex-col items-center gap-2 rounded-2xl border-[3px] border-[hsl(var(--ink))] bg-card px-4 py-6 text-card-foreground comic-shadow transition-transform hover:-translate-y-1 hover:rotate-[-1deg] hover:bg-accent"
+    <div className="anim-pop flex flex-col items-center gap-8 py-10">
+      <div className="flex flex-col items-center gap-2">
+        <h2 className="font-cinematic text-stroke-lg text-center text-4xl font-black text-white sm:text-6xl uppercase tracking-tighter">
+          The Maggi <span className="text-accent">Saga</span>
+        </h2>
+        <div className="h-1 w-24 bg-accent rounded-full" />
+      </div>
+
+      <div className="grid w-full gap-6 sm:grid-cols-2 max-w-4xl">
+        <button 
+          onClick={onPickShark} 
+          className="group relative flex flex-col items-center gap-4 rounded-3xl border-[4px] border-[hsl(var(--ink))] bg-white p-8 text-[hsl(var(--ink))] comic-shadow-lg transition-all hover:-translate-y-2 hover:rotate-[-1deg] active:scale-95"
         >
-          <span className="text-6xl transition-transform group-hover:scale-125">🌙</span>
-          <span className="text-stroke text-lg font-black">START FROM LEVEL 1</span>
-          <span className="text-center text-xs font-bold">
-            Drawer khaali hai. Pitch karo, KBC khelo, court me jao. Full saga.
-          </span>
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-[22px]" />
+          <span className="text-8xl drop-shadow-xl transition-transform group-hover:scale-110">🌙</span>
+          <div className="flex flex-col items-center gap-1">
+            <span className="font-cinematic text-3xl font-black uppercase tracking-tight">START SAGA</span>
+            <span className="text-xs font-bold opacity-60 uppercase tracking-widest">Level 1 — The Void</span>
+          </div>
         </button>
-        <button
-          onClick={onPickKbc}
-          className="group flex flex-col items-center gap-2 rounded-2xl border-[3px] border-[hsl(var(--ink))] bg-card px-4 py-6 text-card-foreground comic-shadow transition-transform hover:-translate-y-1 hover:rotate-[1deg] hover:bg-accent"
+
+        <button 
+          onClick={onPickKbc} 
+          className="group relative flex flex-col items-center gap-4 rounded-3xl border-[4px] border-[hsl(var(--ink))] bg-white p-8 text-[hsl(var(--ink))] comic-shadow-lg transition-all hover:-translate-y-2 hover:rotate-[1deg] active:scale-95"
         >
-          <span className="text-6xl transition-transform group-hover:scale-125">🎬</span>
-          <span className="text-stroke text-lg font-black">SKIP TO KBC</span>
-          <span className="text-center text-xs font-bold">
-            Bachchan sahab seedha. 5 sawaal. ₹7 crore — ya brahmand ka chakkar.
-          </span>
+          <div className="absolute inset-0 bg-gradient-to-br from-accent/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-[22px]" />
+          <span className="text-8xl drop-shadow-xl transition-transform group-hover:scale-110">🎬</span>
+          <div className="flex flex-col items-center gap-1">
+            <span className="font-cinematic text-3xl font-black uppercase tracking-tight">SKIP TO KBC</span>
+            <span className="text-xs font-bold opacity-60 uppercase tracking-widest">Level 3 — Billionaire</span>
+          </div>
         </button>
       </div>
+
+      <p className="text-center text-sm font-bold text-white/70 italic max-w-md">
+        "In a world where packets disappear, one founder must pitch for justice."
+      </p>
     </div>
   );
 }
 
-/* ───────────── Intro AI video ───────────── */
 function IntroVideo({ onSkip }: { onSkip: () => void }) {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
@@ -231,19 +259,14 @@ function IntroVideo({ onSkip }: { onSkip: () => void }) {
   }, [onSkip]);
   return (
     <div className="anim-pop relative flex h-[380px] flex-col items-center justify-center sm:h-[420px]">
-      <video ref={ref} src={introClip.url} muted playsInline
-        className="absolute inset-0 h-full w-full rounded-2xl object-cover comic-border" />
-      <div className="pointer-events-none absolute inset-0 rounded-2xl"
-        style={{ background: "linear-gradient(180deg, transparent 50%, hsl(220 30% 5% / 0.7))" }} />
-      <button onClick={onSkip}
-        className="relative z-10 mt-auto mb-4 rounded-xl border-[3px] border-[hsl(var(--ink))] bg-primary px-5 py-2 font-black text-primary-foreground comic-shadow transition-transform hover:-translate-y-0.5">
-        ⏭ SKIP INTRO &amp; PITCH
+      <video ref={ref} src={introClip.url} muted playsInline className="absolute inset-0 h-full w-full rounded-2xl object-cover comic-border" />
+      <button onClick={onSkip} className="relative z-10 mt-auto mb-4 rounded-xl border-[3px] border-[hsl(var(--ink))] bg-primary px-5 py-2 font-black text-primary-foreground comic-shadow transition-transform hover:-translate-y-0.5">
+        ⏭ SKIP INTRO & PITCH
       </button>
     </div>
   );
 }
 
-/* ───────────── Playing scene ───────────── */
 function PlayingScene({ beat, onAdvance, progress }: { beat: Beat; onAdvance: () => void; progress: string }) {
   const isPitcher = beat.speaker === "pitcher";
   const isNarrator = beat.speaker === "narrator";
@@ -252,50 +275,45 @@ function PlayingScene({ beat, onAdvance, progress }: { beat: Beat; onAdvance: ()
 
   return (
     <div className="anim-pop flex flex-col gap-3" onClick={onAdvance} role="button" tabIndex={0}>
-      <div className="grid grid-cols-2 gap-3 sm:gap-6">
-        {/* Pitcher */}
+      <div className={`grid ${mood === 'sleeping' || mood === 'opening' ? 'grid-cols-1' : 'grid-cols-2'} gap-3 sm:gap-6`}>
         <div className="relative flex flex-col items-center justify-end">
-          {isPitcher && mood === "cry" && (
-            <>
-              <span className="absolute left-[28%] top-[42%] text-2xl anim-tear">💧</span>
-              <span className="absolute right-[28%] top-[42%] text-2xl anim-tear" style={{ animationDelay: "0.3s" }}>💧</span>
-            </>
-          )}
-          <img
-            key={`p-${mood}-${isPitcher}`}
-            src={PITCHER_IMG[mood]}
-            alt="pitcher"
-            className={`h-44 w-auto sm:h-56 ${isPitcher ? (mood === "cry" || mood === "shock" ? "anim-shake" : "anim-wiggle") : "opacity-60 grayscale"} ${isPitcher ? "anim-pop" : ""}`}
-            style={{ filter: "drop-shadow(4px 6px 0 hsl(var(--ink)))" }}
-          />
-          <Label active={isPitcher}>YOU</Label>
-        </div>
-
-        {/* Sharks side */}
-        <div className="relative flex flex-col items-center justify-end">
-          {sharkId ? (
-            <ActiveShark id={sharkId} talking />
+          {mood === "sleeping" || mood === "opening" ? (
+            <div className="relative h-72 w-full overflow-hidden rounded-2xl border-[4px] border-[hsl(var(--ink))] bg-white sm:h-96">
+              <img src={level1Void} alt="level 1 scene" className="absolute inset-0 h-[200%] w-full object-contain transition-transform duration-700 ease-in-out" style={{ transform: mood === "sleeping" ? "translateY(0)" : "translateY(-50%)" }} />
+            </div>
           ) : (
-            <SharksLineup activeId={null} dim={isPitcher || isNarrator} />
+            <div className="relative">
+              {isPitcher && <span className="absolute inset-0 rounded-full anim-pulse-ring" style={{ background: "hsl(var(--primary))", opacity: 0.4 }} />}
+              <img 
+                src={PITCHER_IMG[mood]} 
+                alt="pitcher" 
+                className={`relative h-48 w-48 rounded-full border-[4px] border-[hsl(var(--ink))] bg-white object-cover object-top sm:h-64 sm:w-64 ${isPitcher ? "anim-wiggle" : "opacity-70"} scale-110 transition-transform`} 
+                style={{ boxShadow: `8px 8px 0 hsl(var(--ink)), 0 0 0 6px hsl(var(--primary))` }}
+              />
+            </div>
           )}
-          <Label active={!!sharkId}>{sharkId ? SHARKS[sharkId].title : "THE SHARKS"}</Label>
+          <Label active={isPitcher || mood === 'sleeping' || mood === 'opening'}>
+            {mood === 'sleeping' ? 'SHHH...' : mood === 'opening' ? 'THE DISCOVERY' : 'YOU'}
+          </Label>
         </div>
+        {mood !== "sleeping" && mood !== "opening" && (
+          <div className="relative flex flex-col items-center justify-end">
+            {sharkId ? <ActiveShark id={sharkId} talking text={beat.text} /> : <SharksLineup activeId={null} dim={isPitcher || isNarrator} />}
+            <Label active={!!sharkId}>{sharkId ? SHARKS[sharkId].title : "THE SHARKS"}</Label>
+          </div>
+        )}
       </div>
-
-      {/* Speech */}
       <div className="mt-2">
         {isNarrator ? (
-          <div className="anim-bubble mx-auto max-w-xl rounded-2xl border-[3px] border-dashed border-white/80 bg-[hsl(var(--ink))]/50 px-4 py-3 text-center text-sm font-bold italic text-white sm:text-base">
+          <div className="anim-bubble mx-auto max-w-xl rounded-2xl border-[3px] border-dashed border-white/80 bg-[hsl(var(--ink))]/50 px-4 py-3 text-center text-sm font-bold italic text-white">
             🎬 {beat.text}
           </div>
         ) : (
-          <SpeechBubble side={isPitcher ? "right" : "left"} tone={isPitcher ? "you" : "shark"}>
-            {sharkId && <span className="font-black">{SHARKS[sharkId].name}: </span>}
-            {beat.text}
+          <SpeechBubble side={isPitcher ? "left" : "right"} tone={isPitcher ? "you" : "shark"}>
+            {sharkId && <span className="font-black">{SHARKS[sharkId].name}: </span>}{beat.text}
           </SpeechBubble>
         )}
       </div>
-
       <div className="mt-1 flex items-center justify-between text-[11px] font-bold text-white/80">
         <span>👆 click anywhere to continue</span>
         <span>{progress}</span>
@@ -304,17 +322,26 @@ function PlayingScene({ beat, onAdvance, progress }: { beat: Beat; onAdvance: ()
   );
 }
 
-function ActiveShark({ id, talking }: { id: SharkId; talking: boolean }) {
+function ActiveShark({ id, talking, text }: { id: SharkId; talking: boolean; text: string }) {
   const s = SHARKS[id];
+  const isNimitaOut = id === "namita" && text.toUpperCase().includes("OUT");
+  const displayImg = isNimitaOut && s.imgSpecial ? s.imgSpecial : s.imgActive;
+
+  if (isNimitaOut) {
+    return (
+      <div className="relative z-50">
+        <motion.div drag whileDrag={{ scale: 1.1, rotate: 15 }} dragConstraints={{ left: -1000, right: 1000, top: -1000, bottom: 1000 }} className="cursor-grab active:cursor-grabbing">
+          <img src={displayImg} alt={s.name} className="h-56 w-auto drop-shadow-2xl sm:h-80 scale-125" />
+          <div className="absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-primary px-4 py-1.5 text-xs font-black text-white comic-shadow anim-wiggle">FLING HER OUT! 🚀</div>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative anim-pop">
       {talking && <span className="absolute inset-0 rounded-full anim-pulse-ring" style={{ background: s.color, opacity: 0.5 }} />}
-      <img
-        src={s.imgActive}
-        alt={s.name}
-        className={`relative h-40 w-40 rounded-full border-[4px] border-[hsl(var(--ink))] bg-white object-cover sm:h-52 sm:w-52 ${talking ? "anim-wiggle" : ""}`}
-        style={{ boxShadow: `8px 8px 0 hsl(var(--ink)), 0 0 0 6px ${s.color}` }}
-      />
+      <img src={displayImg} alt={s.name} className={`relative h-48 w-48 rounded-full border-[4px] border-[hsl(var(--ink))] bg-white object-cover object-top sm:h-64 sm:w-64 ${talking ? "anim-wiggle" : ""} scale-110`} style={{ boxShadow: `8px 8px 0 hsl(var(--ink)), 0 0 0 6px ${s.color}` }} />
     </div>
   );
 }
@@ -326,13 +353,7 @@ function SharksLineup({ activeId, dim }: { activeId: SharkId | null; dim: boolea
         const s = SHARKS[sid];
         const isActive = sid === activeId;
         return (
-          <img
-            key={sid}
-            src={isActive ? s.imgActive : s.imgIdle}
-            alt={s.name}
-            className={`h-16 w-16 rounded-full border-[3px] border-[hsl(var(--ink))] bg-white object-cover comic-shadow sm:h-20 sm:w-20 ${isActive ? "anim-wiggle" : ""}`}
-            style={{ animation: isActive ? undefined : `float-bob 3s ease-in-out ${i * 0.2}s infinite` }}
-          />
+          <img key={sid} src={isActive ? s.imgActive : s.imgIdle} alt={s.name} className={`h-16 w-16 rounded-full border-[3px] border-[hsl(var(--ink))] bg-white object-cover object-top sm:h-20 sm:w-20 ${isActive ? "anim-wiggle" : ""} scale-110`} style={{ animation: isActive ? undefined : `float-bob 3s ease-in-out ${i * 0.2}s infinite` }} />
         );
       })}
     </div>
@@ -352,31 +373,42 @@ function SpeechBubble({ children, side, tone = "you" }: { children: React.ReactN
 
 function Label({ children, active }: { children: React.ReactNode; active?: boolean }) {
   return (
-    <div className={`mt-2 rounded-full border-[3px] border-[hsl(var(--ink))] px-3 py-0.5 text-[10px] font-black uppercase tracking-wider comic-shadow ${active ? "bg-primary text-primary-foreground" : "bg-white/70 text-[hsl(var(--ink))]"}`}>
+    <div className={`mt-2 rounded-full border-[3px] border-[hsl(var(--ink))] px-3 py-0.5 text-[11px] font-comic font-black uppercase tracking-wider comic-shadow ${active ? "bg-primary text-primary-foreground" : "bg-white/70 text-[hsl(var(--ink))]"}`}>
       {children}
     </div>
   );
 }
 
-function ChoiceScreen({ prompt, branches, onPick }: {
-  prompt: string;
-  branches: { id: string; label: string; emoji: string }[];
-  onPick: (id: string) => void;
-}) {
+function ChoiceScreen({ prompt, branches, onPick }: { prompt: string; branches: { id: string; label: string; emoji: string }[]; onPick: (id: string) => void; }) {
   return (
     <div className="flex flex-col items-center gap-4 py-4 anim-pop">
-      <h3 className="text-stroke text-center text-xl font-black text-white sm:text-2xl">{prompt}</h3>
+      <h3 className="font-cinematic text-stroke text-center text-xl font-black text-white sm:text-2xl uppercase tracking-wider">{prompt}</h3>
       <div className={`grid w-full gap-3 ${branches.length <= 3 ? "sm:grid-cols-3" : "grid-cols-2 sm:grid-cols-5"}`}>
         {branches.map((b) => (
-          <button
-            key={b.id}
-            onClick={() => onPick(b.id)}
-            className="group flex flex-col items-center gap-2 rounded-2xl border-[3px] border-[hsl(var(--ink))] bg-card px-3 py-4 text-card-foreground comic-shadow transition-transform hover:-translate-y-1 hover:rotate-[-1deg] hover:bg-accent"
-          >
+          <button key={b.id} onClick={() => onPick(b.id)} className="group flex flex-col items-center gap-2 rounded-2xl border-[3px] border-[hsl(var(--ink))] bg-card px-3 py-4 text-card-foreground comic-shadow transition-transform hover:-translate-y-1 hover:bg-accent">
             <span className="text-3xl transition-transform group-hover:scale-125">{b.emoji}</span>
             <span className="text-center text-xs font-bold sm:text-sm">{b.label}</span>
           </button>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function TypingScreen({ onSubmit, onCancel }: { onSubmit: (text: string) => void; onCancel: () => void }) {
+  const [text, setText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const handleGo = () => { if (!text.trim()) return; setLoading(true); onSubmit(text); };
+  return (
+    <div className="flex flex-col items-center gap-6 py-6 anim-pop max-w-lg mx-auto">
+      <h3 className="font-cinematic text-stroke text-center text-3xl font-black text-white uppercase tracking-widest">TYPE YOUR REACTION</h3>
+      <div className="relative w-full">
+        <textarea autoFocus value={text} onChange={(e) => setText(e.target.value)} placeholder="e.g. 'This is a conspiracy!'" className="w-full h-32 rounded-2xl border-[4px] border-[hsl(var(--ink))] bg-white p-4 font-bold text-[hsl(var(--ink))] comic-shadow focus:outline-none" disabled={loading} />
+        {loading && <div className="absolute inset-0 flex items-center justify-center bg-white/50 rounded-2xl"><div className="h-10 w-10 animate-spin rounded-full border-4 border-accent border-t-transparent" /></div>}
+      </div>
+      <div className="flex w-full gap-3">
+        <button onClick={onCancel} className="flex-1 rounded-xl border-[3px] border-[hsl(var(--ink))] bg-white px-4 py-3 font-black text-[hsl(var(--ink))] comic-shadow transition-transform hover:-translate-y-0.5" disabled={loading}>CANCEL</button>
+        <button onClick={handleGo} disabled={loading || !text.trim()} className="flex-1 rounded-xl border-[3px] border-[hsl(var(--ink))] bg-primary px-4 py-3 font-black text-primary-foreground comic-shadow transition-transform hover:-translate-y-0.5 disabled:opacity-50">{loading ? "THINKING..." : "TELL THE WORLD"}</button>
       </div>
     </div>
   );

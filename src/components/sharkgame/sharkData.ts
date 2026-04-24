@@ -1,15 +1,15 @@
 import anupam from "@/assets/shark-anupam.png";
 import anupamAngry from "@/assets/shark-anupam-angry.png";
-import namita from "@/assets/shark-namita.png";
-import namitaOut from "@/assets/shark-namita-out.png";
-import ashneer from "@/assets/shark-ashneer.png";
-import ashneerAngry from "@/assets/shark-ashneer-angry.png";
+import namita from "@/assets/shark-namita-new.png";
+import namitaOut from "@/assets/shark-namita-out-new.png";
+import ashneer from "@/assets/shark-ashneer-new.png";
+import ashneerAngry from "@/assets/shark-ashneer-new.png";
 import aman from "@/assets/shark-aman.png";
 import amanLaugh from "@/assets/shark-aman-laugh.png";
 import peyush from "@/assets/shark-peyush.png";
 import peyushThink from "@/assets/shark-peyush-think.png";
 
-export type Mood = "confident" | "nervous" | "cry" | "shock" | "smug";
+export type Mood = "confident" | "nervous" | "cry" | "shock" | "smug" | "sleeping" | "opening";
 export type SharkId = "anupam" | "namita" | "ashneer" | "aman" | "peyush";
 
 export type Shark = {
@@ -18,6 +18,7 @@ export type Shark = {
   title: string;
   imgIdle: string;
   imgActive: string;
+  imgSpecial?: string;
   color: string;
   voice: { pitch: number; rate: number; lang: string; gender: "male" | "female" };
 };
@@ -30,8 +31,8 @@ export const SHARKS: Record<SharkId, Shark> = {
     voice: { pitch: 0.85, rate: 1.0, lang: "en-IN", gender: "male" },
   },
   namita: {
-    id: "namita", name: "Namita", title: "I'm Out 💁‍♀️",
-    imgIdle: namita, imgActive: namitaOut,
+    id: "namita", name: "Nimita", title: "I'm Out 💁‍♀️",
+    imgIdle: namita, imgActive: namita, imgSpecial: namitaOut,
     color: "hsl(330 75% 55%)",
     voice: { pitch: 1.35, rate: 1.0, lang: "en-IN", gender: "female" },
   },
@@ -255,44 +256,44 @@ const TWIST_NODE: DecisionNode = {
   ],
 };
 
-/** LEVEL 1 — THE DRAWER. The original sin. */
+/** LEVEL 1 — THE VOID (The Discovery). The original sin. */
 const DRAWER_NODE: DecisionNode = {
   id: "drawer",
   intro: [
-    { speaker: "narrator", text: "🌙 LEVEL 1 — THE DRAWER. 2:47 AM. Hostel room 304. Bhookh: maximum." },
-    { speaker: "pitcher", mood: "confident", text: "Strategy clear hai. Drawer kholo. Maggi nikaalo. Khao. Soja." },
-    { speaker: "narrator", text: "Tu drawer kholta hai... ek khaali Lays packet. Ek charger. Ek tastemaker — bina noodles ke. 💀" },
-    { speaker: "pitcher", mood: "shock", text: "Maggi… kahan hai meri Maggi?? Ye toh CRIME SCENE hai!" },
+    { speaker: "pitcher", mood: "sleeping", text: "💤 2:14 AM. The world is at peace. You are dreaming of a masala-filled future." },
+    { speaker: "narrator", mood: "opening", text: "You reach for the yellow packet. Your hand touches cold, hard wood." },
+    { speaker: "narrator", mood: "opening", text: "The drawer is empty. Your heartbeat stops. The economy has collapsed, but more importantly, your Maggi is gone." },
+    { speaker: "pitcher", mood: "shock", text: "Maggi… kahan hai meri Maggi?? Ye toh THE VOID hai!" },
   ],
-  prompt: "Drawer khaali hai. Pehla move?",
+  prompt: "What is your initial vibe?",
   branches: [
     {
-      id: "blame",
-      label: "Roommate ko gaali",
-      emoji: "🤬",
+      id: "drama",
+      label: "[DRAMA] Nahi... Nahi...",
+      emoji: "🎭",
       beats: [
-        { speaker: "pitcher", mood: "shock", text: "ROHAAAAAN!! Tune Maggi khaayi?! Bata sach sach!" },
-        { speaker: "narrator", text: "Roommate so raha hai. Muskura raha hai. Neend me bhi smug. 😴" },
+        { speaker: "pitcher", mood: "cry", text: "Nahi... Nahi... NAHIII! This was my last 12 rupees of hope!" },
+        { speaker: "narrator", text: "The walls of the hostel room echo your despair. Rohan (your roommate) doesn't even flinch." },
       ],
       next: "tank-intro",
     },
     {
-      id: "investigate",
-      label: "Detective mode",
+      id: "cid",
+      label: "[CID] Daya, darwaza...",
       emoji: "🔍",
       beats: [
-        { speaker: "pitcher", mood: "confident", text: "Magnifying glass nikaalo. Tastemaker pe DNA hoga. Sherlock Yadriksha — at your service." },
-        { speaker: "narrator", text: "Subooth: 1 wrapper, 1 spoon, 1 betrayed dil. FIR pakka." },
+        { speaker: "pitcher", mood: "shock", text: "Daya, darwaza mat todo... someone has already broken my heart." },
+        { speaker: "narrator", text: "You look at the empty drawer like it's a crime scene. ACP Pradyuman would be proud." },
       ],
       next: "tank-intro",
     },
     {
-      id: "monetize",
-      label: "Iska business banao",
-      emoji: "💸",
+      id: "type",
+      label: "⌨️ [TYPE REACTION]",
+      emoji: "⌨️",
       beats: [
-        { speaker: "pitcher", mood: "confident", text: "Ruk… ye toh OPPORTUNITY hai. Mera dard scalable hai. SHARK TANK ke liye fly karo!" },
-        { speaker: "narrator", text: "Tum Mumbai ke flight me ho. Lapel mic laga hua hai. Lights on. 🦈" },
+        { speaker: "pitcher", mood: "confident", text: "I'm going to monetize this pain. This isn't just a loss, it's a PITCH." },
+        { speaker: "narrator", text: "You decide to take your tragedy to the biggest stage in India. Mumbai is calling." },
       ],
       next: "tank-intro",
     },
