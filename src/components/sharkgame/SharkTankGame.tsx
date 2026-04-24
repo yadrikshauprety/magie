@@ -111,14 +111,6 @@ export default function SharkTankGame({ onClose }: Props) {
       if (wasIntro) {
         setView({ kind: "choosing", nodeId: view.nodeId, deadlineAt: Date.now() + 6000 });
       } else {
-        // After twist node ending → flow into KBC
-        if (view.nextNodeId === "twist" || view.nodeId === "twist") {
-          // twist completes → KBC
-          if (currentNode.id === "twist" && currentNode.intro === view.beats) {
-            setView({ kind: "choosing", nodeId: view.nodeId, deadlineAt: Date.now() + 6000 });
-            return;
-          }
-        }
         enterNode(view.nextNodeId);
       }
     }
