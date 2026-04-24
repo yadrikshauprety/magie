@@ -3,10 +3,7 @@ import { KBC_ENDINGS, KBC_QUESTIONS, KbcOption, endingFromChaos } from "./kbcDat
 
 interface Props {
   onClose: () => void;
-  onZoomShake: () => void;
-  speak: (text: string, opts?: { lang?: string; pitch?: number; rate?: number }) => void;
-  vibrate: (pattern?: number | number[]) => void;
-  muted: boolean;
+  speak: (text: string, opts?: { lang?: string; pitch?: number; rate?: number; gender?: "male" | "female" }) => void;
 }
 
 type View =
@@ -15,40 +12,36 @@ type View =
   | { kind: "reaction"; id: string; chaos: number; option: KbcOption }
   | { kind: "ending"; chaos: number };
 
-export default function KbcGame({ onClose, onZoomShake, speak, vibrate, muted }: Props) {
+const bachchanVoice = { lang: "hi-IN", pitch: 0.55, rate: 0.9, gender: "male" as const };
+
+export default function KbcGame({ onClose, speak }: Props) {
   const [view, setView] = useState<View>({ kind: "intro" });
 
   useEffect(() => {
     if (view.kind === "intro") {
-      speak(
-        "Devi-yon aur sajjano. Yadriksha ji, Shark Tank se seedha KBC me. Aaiye khelte hain.",
-        { lang: "hi-IN", pitch: 0.6, rate: 0.92 }
-      );
+      speak("Devi-yon aur sajjano. Yadriksha ji, Shark Tank se seedha KBC me. Aaiye khelte hain.", bachchanVoice);
       const t = setTimeout(() => setView({ kind: "question", id: "q1", chaos: 0 }), 3500);
       return () => clearTimeout(t);
     }
     if (view.kind === "question") {
       const q = KBC_QUESTIONS[view.id];
-      speak(`${q.bachchan} ${q.question}`, { lang: "hi-IN", pitch: 0.6, rate: 0.95 });
+      speak(`${q.bachchan} ${q.question}`, bachchanVoice);
     }
     if (view.kind === "reaction") {
-      speak(view.option.reaction, { lang: "hi-IN", pitch: 0.6, rate: 0.98 });
+      speak(view.option.reaction, bachchanVoice);
     }
     if (view.kind === "ending") {
       const e = KBC_ENDINGS[endingFromChaos(view.chaos)];
-      speak(e.bachchan.join(" "), { lang: "hi-IN", pitch: 0.6, rate: 0.95 });
-      vibrate([60, 40, 60, 40, 200]);
+      speak(e.bachchan.join(" "), bachchanVoice);
     }
-  }, [view, speak, vibrate]);
+  }, [view, speak]);
 
   const pick = (q: string, opt: KbcOption) => {
     if (view.kind !== "question") return;
-    onZoomShake();
-    vibrate(80);
     setView({ kind: "question", id: q, chaos: view.chaos, pickedLetter: opt.letter, locking: true });
     setTimeout(() => {
       setView({ kind: "reaction", id: q, chaos: view.chaos + opt.chaos, option: opt });
-    }, 1100);
+    }, 900);
   };
 
   const next = () => {
@@ -99,7 +92,6 @@ export default function KbcGame({ onClose, onZoomShake, speak, vibrate, muted }:
   }
 
   if (view.kind === "reaction") {
-    const q = KBC_QUESTIONS[view.id];
     return (
       <div className="anim-pop flex flex-col gap-3" onClick={next} role="button">
         <div className="rounded-2xl border-[3px] border-[hsl(var(--ink))] bg-card px-4 py-3 text-card-foreground comic-shadow">

@@ -6,8 +6,6 @@ import pitcherCry from "@/assets/pitcher-crying.png";
 import pitcherShock from "@/assets/pitcher-shock.png";
 import { Beat, buildGraph, Mood, SHARK_ORDER, SHARKS, SharkId } from "./sharkData";
 import { useVoice } from "./useVoice";
-import { SHARK_ADS, SharkAd } from "./sharkAds";
-import SharkAdOverlay from "./SharkAdOverlay";
 import KbcGame from "./KbcGame";
 
 interface Props { onClose: () => void; }
@@ -24,23 +22,16 @@ type View =
   | { kind: "menu" }
   | { kind: "video" }
   | { kind: "playing"; nodeId: string; beats: Beat[]; idx: number; nextNodeId: string }
-  | { kind: "choosing"; nodeId: string; deadlineAt: number }
+  | { kind: "choosing"; nodeId: string }
   | { kind: "kbc" };
 
 export default function SharkTankGame({ onClose }: Props) {
   const graph = useMemo(buildGraph, []);
   const [muted, setMuted] = useState(false);
   const [view, setView] = useState<View>({ kind: "menu" });
-  const [crossedOff, setCrossedOff] = useState<Set<SharkId>>(new Set());
-  const [activeAd, setActiveAd] = useState<SharkAd | null>(null);
-  const [namitaRocket, setNamitaRocket] = useState(false);
-  const [zoomShake, setZoomShake] = useState(false);
-  const [bp, setBp] = useState(20); // ashneer blood pressure 0-100
-  const [arnab, setArnab] = useState(20); // arnab volume slider
   const { speak, stop } = useVoice(!muted);
   const sfxRef = useRef<AudioContext | null>(null);
 
-  /* ───── helpers ───── */
   const sfx = useCallback((freq: number, dur = 0.1, type: OscillatorType = "square", vol = 0.05) => {
     if (muted) return;
     const Ctor = window.AudioContext || (window as any).webkitAudioContext;
@@ -54,24 +45,6 @@ export default function SharkTankGame({ onClose }: Props) {
     o.stop(ctx.currentTime + dur);
   }, [muted]);
 
-  const dhumDhumDhum = useCallback(() => {
-    [0, 140, 280].forEach((d, i) => setTimeout(() => sfx(120 - i * 20, 0.18, "sawtooth", 0.08), d));
-  }, [sfx]);
-
-  const vibrate = useCallback((p: number | number[] = 30) => {
-    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-      try { navigator.vibrate(p); } catch {}
-    }
-  }, []);
-
-  const triggerZoomShake = useCallback(() => {
-    setZoomShake(true);
-    dhumDhumDhum();
-    vibrate([60, 30, 60, 30, 60]);
-    setTimeout(() => setZoomShake(false), 700);
-  }, [dhumDhumDhum, vibrate]);
-
-  /* ───── flow ───── */
   const startGame = () => { sfx(660, 0.15, "triangle"); enterNode("intro"); };
 
   const enterNode = (nodeId: string) => {
@@ -82,7 +55,7 @@ export default function SharkTankGame({ onClose }: Props) {
     if (node.intro && node.intro.length > 0) {
       setView({ kind: "playing", nodeId, beats: node.intro, idx: 0, nextNodeId: nodeId });
     } else {
-      setView({ kind: "choosing", nodeId, deadlineAt: Date.now() + 6000 });
+      setView({ kind: "choosing", nodeId });
     }
   };
 
@@ -92,8 +65,6 @@ export default function SharkTankGame({ onClose }: Props) {
     const b = node.branches.find((x) => x.id === branchId);
     if (!b) return;
     sfx(880, 0.08, "triangle");
-    triggerZoomShake();
-    setBp((v) => Math.max(0, v - 15));
     if (b.beats.length === 0) {
       enterNode(b.next ?? "exit");
     } else {
@@ -109,84 +80,46 @@ export default function SharkTankGame({ onClose }: Props) {
       const currentNode = graph[view.nodeId];
       const wasIntro = currentNode.intro === view.beats;
       if (wasIntro) {
-        setView({ kind: "choosing", nodeId: view.nodeId, deadlineAt: Date.now() + 6000 });
+        setView({ kind: "choosing", nodeId: view.nodeId });
       } else {
         enterNode(view.nextNodeId);
       }
     }
   };
 
-  /* ───── speak each beat ───── */
+  // Speak each beat
   useEffect(() => {
     if (view.kind !== "playing") return;
     const beat = view.beats[view.idx];
     if (!beat) return;
     if (beat.speaker === "pitcher") {
-      speak(beat.text, { lang: "en-IN", pitch: 1.1, rate: 1.05 });
+      speak(beat.text, { lang: "en-IN", pitch: 1.05, rate: 1.05, gender: "male" });
       sfx(beat.mood === "cry" ? 280 : 520, 0.12, "sine");
     } else if (beat.speaker === "narrator") {
-      speak(beat.text, { lang: "en-IN", pitch: 0.85, rate: 0.95 });
+      speak(beat.text, { lang: "en-IN", pitch: 0.85, rate: 0.95, gender: "male" });
       sfx(180, 0.18, "sawtooth");
     } else {
       const s = SHARKS[beat.speaker as SharkId];
       speak(beat.text, s.voice);
       sfx(160, 0.12, "sawtooth");
-      // Bump Ashneer BP when he yells
-      if (beat.speaker === "ashneer") setBp((v) => Math.min(100, v + 25));
     }
   }, [view, speak, sfx]);
 
-  /* ───── BP meter rises if user is slow on choices ───── */
-  useEffect(() => {
-    if (view.kind !== "choosing") return;
-    const t = setInterval(() => {
-      const remaining = view.deadlineAt - Date.now();
-      if (remaining <= 0) {
-        setBp((v) => Math.min(100, v + 8));
-      }
-    }, 600);
-    return () => clearInterval(t);
-  }, [view]);
-
-  /* ───── Arnab slider auto-resets to 100 in narrator beats ───── */
-  useEffect(() => {
-    if (view.kind !== "playing") return;
-    const beat = view.beats[view.idx];
-    if (beat?.speaker === "narrator") {
-      setArnab(100);
-    }
-  }, [view]);
-
-  const reset = () => { stop(); setView({ kind: "menu" }); setCrossedOff(new Set()); setBp(20); setArnab(20); setNamitaRocket(false); };
-
-  /* ───── shark cross-off handler ───── */
-  const tryCrossOff = (sid: SharkId) => {
-    if (crossedOff.has(sid)) return;
-    setActiveAd(SHARK_ADS[sid]);
-    vibrate(40);
-    sfx(440, 0.2, "square");
-    if (sid === "namita") {
-      setNamitaRocket(true);
-      setTimeout(() => setCrossedOff((s) => new Set(s).add(sid)), 900);
-    }
-  };
+  const reset = () => { stop(); setView({ kind: "menu" }); };
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 anim-bubble shark-cursor"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 anim-bubble"
       style={{ background: "hsl(220 30% 8% / 0.78)" }}
       onClick={() => { stop(); onClose(); }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`relative w-full max-w-3xl overflow-hidden rounded-3xl comic-border comic-shadow-lg ${zoomShake ? "anim-zoom-shake" : ""}`}
+        className="relative w-full max-w-3xl overflow-hidden rounded-3xl comic-border comic-shadow-lg"
         style={{ background: "var(--gradient-tank)" }}
       >
         <div className="pointer-events-none absolute inset-0" style={{ background: "var(--gradient-spotlight)" }} />
         <div className="pointer-events-none absolute -top-10 left-1/2 h-40 w-40 -translate-x-1/2 rounded-full bg-accent/40 blur-3xl anim-spotlight" />
-
-        {/* white flash for zoom-shake */}
-        {zoomShake && <div className="pointer-events-none absolute inset-0 z-20 anim-flash bg-white" />}
 
         {/* Header */}
         <div className="relative z-10 flex items-center justify-between border-b-[3px] border-[hsl(var(--ink))] bg-accent px-4 py-2">
@@ -219,9 +152,6 @@ export default function SharkTankGame({ onClose }: Props) {
               beat={view.beats[view.idx]}
               onAdvance={advance}
               progress={`${view.idx + 1}/${view.beats.length}`}
-              crossedOff={crossedOff}
-              onCrossOff={tryCrossOff}
-              namitaRocket={namitaRocket}
             />
           )}
           {view.kind === "choosing" && (
@@ -232,25 +162,9 @@ export default function SharkTankGame({ onClose }: Props) {
             />
           )}
           {view.kind === "kbc" && (
-            <KbcGame onClose={onClose} onZoomShake={triggerZoomShake} speak={speak} vibrate={vibrate} muted={muted} />
+            <KbcGame onClose={onClose} speak={speak} />
           )}
         </div>
-
-        {/* HUD: Ashneer BP meter (Shark Tank only) */}
-        {view.kind !== "menu" && view.kind !== "kbc" && view.kind !== "video" && (
-          <BpMeter bp={bp} />
-        )}
-
-        {/* HUD: Arnab volume slider (during narrator) */}
-        {view.kind === "playing" && view.beats[view.idx]?.speaker === "narrator" && (
-          <ArnabSlider value={arnab} onTry={() => { setArnab(100); vibrate(20); }} />
-        )}
-
-        {/* Breaking news ticker (during narrator) */}
-        {view.kind === "playing" && view.beats[view.idx]?.speaker === "narrator" && <NewsTicker />}
-
-        {/* Ad overlay */}
-        {activeAd && <SharkAdOverlay ad={activeAd} onClose={() => setActiveAd(null)} />}
       </div>
     </div>
   );
@@ -263,7 +177,7 @@ function ModeMenu({ onPickShark, onPickKbc }: { onPickShark: () => void; onPickK
       <h2 className="text-stroke text-center text-2xl font-black text-white sm:text-3xl">
         Bored? Pick your destiny.
       </h2>
-      <p className="text-center text-sm font-semibold text-white/80">
+      <p className="text-center text-sm font-semibold text-white/85">
         Two arenas. Two ways to embarrass yourself on national television.
       </p>
       <div className="grid w-full gap-4 sm:grid-cols-2">
@@ -274,7 +188,7 @@ function ModeMenu({ onPickShark, onPickKbc }: { onPickShark: () => void; onPickK
           <span className="text-6xl transition-transform group-hover:scale-125">🦈</span>
           <span className="text-stroke text-lg font-black">SHARK TANK</span>
           <span className="text-center text-xs font-bold">
-            Pitch your Maggi crisis to 5 billionaires. Cross them off (at your own risk).
+            Pitch your Maggi crisis to 5 billionaires. Get roasted in HD.
           </span>
         </button>
         <button
@@ -284,13 +198,10 @@ function ModeMenu({ onPickShark, onPickKbc }: { onPickShark: () => void; onPickK
           <span className="text-6xl transition-transform group-hover:scale-125">🎬</span>
           <span className="text-stroke text-lg font-black">KAUN BANEGA CROREPATI</span>
           <span className="text-center text-xs font-bold">
-            5 questions. 4 options each. Bachchan sahab ka pyaar — ya brahmand ka chakra.
+            5 sawaal. Bachchan sahab. ₹7 crore — ya brahmand ka chakkar.
           </span>
         </button>
       </div>
-      <p className="text-[11px] font-bold text-white/70">
-        💡 Tip: hover over the screen — your cursor becomes a magnifying glass 🔍
-      </p>
     </div>
   );
 }
@@ -319,12 +230,7 @@ function IntroVideo({ onSkip }: { onSkip: () => void }) {
 }
 
 /* ───────────── Playing scene ───────────── */
-function PlayingScene({
-  beat, onAdvance, progress, crossedOff, onCrossOff, namitaRocket,
-}: {
-  beat: Beat; onAdvance: () => void; progress: string;
-  crossedOff: Set<SharkId>; onCrossOff: (s: SharkId) => void; namitaRocket: boolean;
-}) {
+function PlayingScene({ beat, onAdvance, progress }: { beat: Beat; onAdvance: () => void; progress: string }) {
   const isPitcher = beat.speaker === "pitcher";
   const isNarrator = beat.speaker === "narrator";
   const sharkId = !isPitcher && !isNarrator ? (beat.speaker as SharkId) : null;
@@ -335,7 +241,7 @@ function PlayingScene({
       <div className="grid grid-cols-2 gap-3 sm:gap-6">
         {/* Pitcher */}
         <div className="relative flex flex-col items-center justify-end">
-          {isPitcher && (mood === "cry") && (
+          {isPitcher && mood === "cry" && (
             <>
               <span className="absolute left-[28%] top-[42%] text-2xl anim-tear">💧</span>
               <span className="absolute right-[28%] top-[42%] text-2xl anim-tear" style={{ animationDelay: "0.3s" }}>💧</span>
@@ -353,12 +259,12 @@ function PlayingScene({
 
         {/* Sharks side */}
         <div className="relative flex flex-col items-center justify-end">
-          {sharkId && !crossedOff.has(sharkId) ? (
-            <ActiveShark id={sharkId} talking onCrossOff={(e) => { e.stopPropagation(); onCrossOff(sharkId); }} rocket={sharkId === "namita" && namitaRocket} />
+          {sharkId ? (
+            <ActiveShark id={sharkId} talking />
           ) : (
-            <SharksLineup activeId={null} dim={isPitcher || isNarrator} crossedOff={crossedOff} onCrossOff={onCrossOff} />
+            <SharksLineup activeId={null} dim={isPitcher || isNarrator} />
           )}
-          <Label active={!!sharkId && !crossedOff.has(sharkId!)}>{sharkId ? SHARKS[sharkId].title : "THE SHARKS"}</Label>
+          <Label active={!!sharkId}>{sharkId ? SHARKS[sharkId].title : "THE SHARKS"}</Label>
         </div>
       </div>
 
@@ -377,17 +283,17 @@ function PlayingScene({
       </div>
 
       <div className="mt-1 flex items-center justify-between text-[11px] font-bold text-white/80">
-        <span>👆 click anywhere to continue · ❌ click a shark to cross them off</span>
+        <span>👆 click anywhere to continue</span>
         <span>{progress}</span>
       </div>
     </div>
   );
 }
 
-function ActiveShark({ id, talking, onCrossOff, rocket }: { id: SharkId; talking: boolean; onCrossOff: (e: React.MouseEvent) => void; rocket?: boolean }) {
+function ActiveShark({ id, talking }: { id: SharkId; talking: boolean }) {
   const s = SHARKS[id];
   return (
-    <div className={`relative anim-pop ${rocket ? "anim-rocket" : ""}`}>
+    <div className="relative anim-pop">
       {talking && <span className="absolute inset-0 rounded-full anim-pulse-ring" style={{ background: s.color, opacity: 0.5 }} />}
       <img
         src={s.imgActive}
@@ -395,50 +301,24 @@ function ActiveShark({ id, talking, onCrossOff, rocket }: { id: SharkId; talking
         className={`relative h-40 w-40 rounded-full border-[4px] border-[hsl(var(--ink))] bg-white object-cover sm:h-52 sm:w-52 ${talking ? "anim-wiggle" : ""}`}
         style={{ boxShadow: `8px 8px 0 hsl(var(--ink)), 0 0 0 6px ${s.color}` }}
       />
-      <button
-        onClick={onCrossOff}
-        className="absolute -right-2 -top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full border-[3px] border-[hsl(var(--ink))] bg-destructive text-white comic-shadow transition-transform hover:scale-110 active:scale-95"
-        aria-label={`cross off ${s.name}`}
-      >
-        <X size={18} strokeWidth={4} />
-      </button>
-      {rocket && (
-        <div className="pointer-events-none absolute inset-x-0 -bottom-4 flex justify-center text-2xl">
-          💊💊💊
-        </div>
-      )}
     </div>
   );
 }
 
-function SharksLineup({ activeId, dim, crossedOff, onCrossOff }: { activeId: SharkId | null; dim: boolean; crossedOff: Set<SharkId>; onCrossOff: (s: SharkId) => void }) {
+function SharksLineup({ activeId, dim }: { activeId: SharkId | null; dim: boolean }) {
   return (
     <div className={`flex flex-wrap items-end justify-center gap-1 ${dim ? "opacity-70" : ""}`}>
       {SHARK_ORDER.map((sid, i) => {
         const s = SHARKS[sid];
         const isActive = sid === activeId;
-        const isOut = crossedOff.has(sid);
         return (
-          <div key={sid} className="relative">
-            <img
-              src={isActive ? s.imgActive : s.imgIdle}
-              alt={s.name}
-              className={`h-16 w-16 rounded-full border-[3px] border-[hsl(var(--ink))] bg-white object-cover comic-shadow sm:h-20 sm:w-20 ${isActive ? "anim-wiggle" : ""} ${isOut ? "opacity-30 grayscale" : ""}`}
-              style={{ animation: isActive || isOut ? undefined : `float-bob 3s ease-in-out ${i * 0.2}s infinite` }}
-            />
-            {!isOut && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onCrossOff(sid); }}
-                className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[hsl(var(--ink))] bg-destructive text-white"
-                aria-label={`cross off ${s.name}`}
-              >
-                <X size={10} strokeWidth={4} />
-              </button>
-            )}
-            {isOut && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-3xl text-destructive">❌</div>
-            )}
-          </div>
+          <img
+            key={sid}
+            src={isActive ? s.imgActive : s.imgIdle}
+            alt={s.name}
+            className={`h-16 w-16 rounded-full border-[3px] border-[hsl(var(--ink))] bg-white object-cover comic-shadow sm:h-20 sm:w-20 ${isActive ? "anim-wiggle" : ""}`}
+            style={{ animation: isActive ? undefined : `float-bob 3s ease-in-out ${i * 0.2}s infinite` }}
+          />
         );
       })}
     </div>
@@ -464,19 +344,14 @@ function Label({ children, active }: { children: React.ReactNode; active?: boole
   );
 }
 
-/* ───────────── Choice screen ───────────── */
-function ChoiceScreen({
-  prompt, branches, onPick,
-}: {
+function ChoiceScreen({ prompt, branches, onPick }: {
   prompt: string;
   branches: { id: string; label: string; emoji: string }[];
   onPick: (id: string) => void;
 }) {
   return (
     <div className="flex flex-col items-center gap-4 py-4 anim-pop">
-      <h3 className="text-stroke text-center text-xl font-black text-white sm:text-2xl">
-        {prompt}
-      </h3>
+      <h3 className="text-stroke text-center text-xl font-black text-white sm:text-2xl">{prompt}</h3>
       <div className={`grid w-full gap-3 ${branches.length <= 3 ? "sm:grid-cols-3" : "grid-cols-2 sm:grid-cols-5"}`}>
         {branches.map((b) => (
           <button
@@ -488,67 +363,6 @@ function ChoiceScreen({
             <span className="text-center text-xs font-bold sm:text-sm">{b.label}</span>
           </button>
         ))}
-      </div>
-    </div>
-  );
-}
-
-/* ───────────── HUD: Ashneer BP meter ───────────── */
-function BpMeter({ bp }: { bp: number }) {
-  const danger = bp > 70;
-  return (
-    <div className="pointer-events-none absolute right-2 top-16 z-10 flex flex-col items-center gap-1">
-      <div className="rounded-full border-[2px] border-[hsl(var(--ink))] bg-white/90 px-2 py-0.5 text-[9px] font-black uppercase">
-        Ashneer BP
-      </div>
-      <div className="relative h-32 w-4 overflow-hidden rounded-full border-[2px] border-[hsl(var(--ink))] bg-white">
-        <div
-          className={`absolute bottom-0 left-0 right-0 transition-all duration-500 ${danger ? "anim-shake" : ""}`}
-          style={{ height: `${bp}%`, background: danger ? "hsl(0 90% 55%)" : "hsl(48 98% 55%)" }}
-        />
-      </div>
-      <div className="text-[10px] font-black text-white">{bp}</div>
-    </div>
-  );
-}
-
-/* ───────────── HUD: Arnab volume slider ───────────── */
-function ArnabSlider({ value, onTry }: { value: number; onTry: () => void }) {
-  return (
-    <div className="absolute left-2 top-16 z-10 flex flex-col items-center gap-1">
-      <div className="rounded-full border-[2px] border-[hsl(var(--ink))] bg-white/90 px-2 py-0.5 text-[9px] font-black uppercase">
-        Nation Volume
-      </div>
-      <input
-        type="range"
-        value={value}
-        min={0}
-        max={100}
-        onChange={onTry}
-        className="h-32 w-4 cursor-not-allowed accent-destructive"
-        style={{ writingMode: "vertical-lr" as any, direction: "rtl" } as React.CSSProperties}
-      />
-      <div className="text-[10px] font-black text-white">100%</div>
-    </div>
-  );
-}
-
-/* ───────────── Breaking news ticker ───────────── */
-function NewsTicker() {
-  const items = [
-    "STOCKS IN NOODLES PLUMMET",
-    "ROOMMATE SEEN LICKING FORK AT 3:14 AM",
-    "BREAKING: TASTEMAKER SUPPLY CHAIN UNDER PRESSURE",
-    "CCTV REVEALS HOSTEL CONSPIRACY",
-    "NATIONAL EMERGENCY: MAGGI SHORTAGE",
-  ];
-  return (
-    <div className="absolute bottom-0 left-0 right-0 z-10 flex items-center gap-2 border-t-[3px] border-[hsl(var(--ink))] bg-destructive px-2 py-1 text-white">
-      <span className="rounded bg-white px-2 py-0.5 text-[10px] font-black text-destructive">BREAKING</span>
-      <div className="flex-1 overflow-hidden">
-        <div className="anim-ticker whitespace-nowrap text-xs font-black">
-          {items.concat(items).map((t, i) => <span key={i} className="mx-6">⚡ {t}</span>)}
-        </div>
       </div>
     </div>
   );
