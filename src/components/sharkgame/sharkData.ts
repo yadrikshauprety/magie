@@ -255,10 +255,55 @@ const TWIST_NODE: DecisionNode = {
   ],
 };
 
-const INTRO_NODE: DecisionNode = {
-  id: "intro",
+/** LEVEL 1 — THE DRAWER. The original sin. */
+const DRAWER_NODE: DecisionNode = {
+  id: "drawer",
   intro: [
-    { speaker: "narrator", text: "🦈 Welcome to SHARK TANK INDIA — Maggi Edition. Dhun dhun dhun dhun DAAAA!" },
+    { speaker: "narrator", text: "🌙 LEVEL 1 — THE DRAWER. 2:47 AM. Hostel room 304. Bhookh: maximum." },
+    { speaker: "pitcher", mood: "confident", text: "Strategy clear hai. Drawer kholo. Maggi nikaalo. Khao. Soja." },
+    { speaker: "narrator", text: "Tu drawer kholta hai... ek khaali Lays packet. Ek charger. Ek tastemaker — bina noodles ke. 💀" },
+    { speaker: "pitcher", mood: "shock", text: "Maggi… kahan hai meri Maggi?? Ye toh CRIME SCENE hai!" },
+  ],
+  prompt: "Drawer khaali hai. Pehla move?",
+  branches: [
+    {
+      id: "blame",
+      label: "Roommate ko gaali",
+      emoji: "🤬",
+      beats: [
+        { speaker: "pitcher", mood: "shock", text: "ROHAAAAAN!! Tune Maggi khaayi?! Bata sach sach!" },
+        { speaker: "narrator", text: "Roommate so raha hai. Muskura raha hai. Neend me bhi smug. 😴" },
+      ],
+      next: "tank-intro",
+    },
+    {
+      id: "investigate",
+      label: "Detective mode",
+      emoji: "🔍",
+      beats: [
+        { speaker: "pitcher", mood: "confident", text: "Magnifying glass nikaalo. Tastemaker pe DNA hoga. Sherlock Yadriksha — at your service." },
+        { speaker: "narrator", text: "Subooth: 1 wrapper, 1 spoon, 1 betrayed dil. FIR pakka." },
+      ],
+      next: "tank-intro",
+    },
+    {
+      id: "monetize",
+      label: "Iska business banao",
+      emoji: "💸",
+      beats: [
+        { speaker: "pitcher", mood: "confident", text: "Ruk… ye toh OPPORTUNITY hai. Mera dard scalable hai. SHARK TANK ke liye fly karo!" },
+        { speaker: "narrator", text: "Tum Mumbai ke flight me ho. Lapel mic laga hua hai. Lights on. 🦈" },
+      ],
+      next: "tank-intro",
+    },
+  ],
+};
+
+/** LEVEL 2 — Shark Tank pitch */
+const TANK_INTRO_NODE: DecisionNode = {
+  id: "tank-intro",
+  intro: [
+    { speaker: "narrator", text: "🦈 LEVEL 2 — SHARK TANK INDIA, Maggi Edition. Dhun dhun dhun dhun DAAAA!" },
     { speaker: "pitcher", mood: "confident", text: "Namaste Sharks 🙏 Main Yadriksha — founder of 'Meri Maggi Kahan Hai? Pvt. Ltd.'" },
     { speaker: "pitcher", mood: "confident", text: "Har raat 140 crore log sote hain. 40% students 2 AM ko uthke dekhte hain — drawer KHAALI. Roommate ne LIQUIDATE kar diya!" },
     { speaker: "pitcher", mood: "confident", text: "₹100 Crore chahiye for 0.1% equity. Mera dard SCALABLE hai. 😤" },
@@ -273,11 +318,81 @@ const INTRO_NODE: DecisionNode = {
   })),
 };
 
+/** LEVEL 4 — SUPREME COURT. Final justice. The judge is… your roommate. */
+const COURT_NODE: DecisionNode = {
+  id: "court",
+  intro: [
+    { speaker: "narrator", text: "⚖️ LEVEL 4 — SUPREME COURT OF INDIA. Case No. 304/MAGGI/2025." },
+    { speaker: "narrator", text: "Court rise. Honourable judge enters. Black robe. White wig. Familiar smirk…" },
+    { speaker: "pitcher", mood: "shock", text: "RUKO… ye judge toh… ROHAN hai?! MERA ROOMMATE?!" },
+    { speaker: "narrator", text: "Judge Rohan strikes the gavel. Tastemaker ki khushboo hawa me. 🔨" },
+  ],
+  prompt: "Judge sahab waiting hain. Plea kya hai?",
+  branches: [
+    {
+      id: "guilty",
+      label: '"Guilty hun, my lord"',
+      emoji: "🙇",
+      beats: [
+        { speaker: "pitcher", mood: "cry", text: "My lord… maine roommate ko gaali di. Mafi chahta hun. Aur thoda Maggi bhi." },
+        { speaker: "narrator", text: "Judge Rohan: 'Mafi swikaar. Saza — tu mere liye Maggi banayega. Lifelong. With andaa.'" },
+        { speaker: "pitcher", mood: "shock", text: "YE TO LIFE SENTENCE HAI 😭" },
+      ],
+      next: "verdict",
+    },
+    {
+      id: "counter",
+      label: '"Counter-FIR!"',
+      emoji: "📜",
+      beats: [
+        { speaker: "pitcher", mood: "confident", text: "Objection! Judge sahab KHUD accused hain! Conflict of interest! Recusal demand karta hun!" },
+        { speaker: "narrator", text: "Judge Rohan: 'Objection overruled. Kyunki main bhi judge hun aur main bhi gawaah hun. Bahut convenient.'" },
+        { speaker: "pitcher", mood: "shock", text: "Constitution rote-rote so gaya 😩" },
+      ],
+      next: "verdict",
+    },
+    {
+      id: "deal",
+      label: '"Out-of-court settlement"',
+      emoji: "🤝",
+      beats: [
+        { speaker: "pitcher", mood: "confident", text: "My lord… 2 packet abhi, 2 packet diwali pe. Case withdraw. Deal?" },
+        { speaker: "narrator", text: "Judge Rohan stares for 7 seconds. Phir gavel. 'Deal. Lekin tastemaker mera.'" },
+        { speaker: "pitcher", mood: "nervous", text: "Tastemaker hi toh sab kuch hai sir 🥲" },
+      ],
+      next: "verdict",
+    },
+  ],
+};
+
+/** Final verdict screen */
+const VERDICT_NODE: DecisionNode = {
+  id: "verdict",
+  intro: [
+    { speaker: "narrator", text: "🔨 ORDER. ORDER. ORDER. Judge Rohan reads the final verdict:" },
+    { speaker: "narrator", text: "'In the matter of Yadriksha vs. The Empty Drawer — the court finds that nobody is innocent. Maggi belongs to whoever cooks it first. Case closed.'" },
+    { speaker: "pitcher", mood: "cry", text: "Justice system has failed me. But also… mujhe bhookh lagi hai phir se. 😭🍜" },
+    { speaker: "narrator", text: "🎬 THE END. (Ya shayad shuruwaat. Drawer phir se khaali hai.)" },
+  ],
+  prompt: "Game over. Aage kya?",
+  branches: [
+    { id: "again", label: "🔁 Phir se shuru", emoji: "🔁", beats: [], next: "drawer" },
+    { id: "exit", label: "✌️ Exit", emoji: "✌️", beats: [], next: "exit" },
+  ],
+};
+
+/** Backwards-compat alias */
+const INTRO_NODE = DRAWER_NODE;
+
 export function buildGraph(): Record<string, DecisionNode> {
   const nodes: Record<string, DecisionNode> = {
+    drawer: DRAWER_NODE,
     intro: INTRO_NODE,
+    "tank-intro": TANK_INTRO_NODE,
     ending: ENDING_NODE,
     twist: TWIST_NODE,
+    court: COURT_NODE,
+    verdict: VERDICT_NODE,
   };
   SHARK_ORDER.forEach((sid, idx) => {
     const next = idx < SHARK_ORDER.length - 1 ? `${SHARK_ORDER[idx + 1]}-tone` : "ending";
@@ -285,3 +400,4 @@ export function buildGraph(): Record<string, DecisionNode> {
   });
   return nodes;
 }
+

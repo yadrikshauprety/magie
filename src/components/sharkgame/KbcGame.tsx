@@ -3,6 +3,7 @@ import { KBC_ENDINGS, KBC_QUESTIONS, KbcOption, endingFromChaos } from "./kbcDat
 
 interface Props {
   onClose: () => void;
+  onComplete?: () => void;
   speak: (text: string, opts?: { lang?: string; pitch?: number; rate?: number; gender?: "male" | "female" }) => void;
 }
 
@@ -14,7 +15,7 @@ type View =
 
 const bachchanVoice = { lang: "hi-IN", pitch: 0.55, rate: 0.9, gender: "male" as const };
 
-export default function KbcGame({ onClose, speak }: Props) {
+export default function KbcGame({ onClose, onComplete, speak }: Props) {
   const [view, setView] = useState<View>({ kind: "intro" });
 
   useEffect(() => {
@@ -81,12 +82,22 @@ export default function KbcGame({ onClose, speak }: Props) {
           🧑 {e.pitcher}
         </p>
         <p className="text-xs font-bold text-white/80">Chaos score: {view.chaos}</p>
-        <button
-          onClick={onClose}
-          className="rounded-xl border-[3px] border-[hsl(var(--ink))] bg-accent px-5 py-2 font-black text-accent-foreground comic-shadow"
-        >
-          ✌️ EXIT KBC
-        </button>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {onComplete && (
+            <button
+              onClick={onComplete}
+              className="rounded-xl border-[3px] border-[hsl(var(--ink))] bg-primary px-5 py-2 font-black text-primary-foreground comic-shadow transition-transform hover:-translate-y-0.5"
+            >
+              ⚖️ SUPREME COURT
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="rounded-xl border-[3px] border-[hsl(var(--ink))] bg-accent px-5 py-2 font-black text-accent-foreground comic-shadow"
+          >
+            ✌️ EXIT
+          </button>
+        </div>
       </div>
     );
   }
