@@ -257,8 +257,9 @@ const TWIST_NODE: DecisionNode = {
     { speaker: "pitcher", mood: "shock", text: "Ye... ye toh main hi hun?? 🫥" },
     { speaker: "narrator", text: "🦈 Tu THIEF hai. Tu VICTIM hai. Tu hi ECOSYSTEM hai." },
   ],
-  prompt: "Khel khatam. Phir se khelega?",
+  prompt: "Tank se nikal gaya. Ab agla stage — Bachchan sahab bula rahe hain!",
   branches: [
+    { id: "kbc", label: "🎬 GO TO KBC", emoji: "🎬", beats: [], next: "kbc" },
     { id: "restart", label: "🔁 PITCH AGAIN", emoji: "🔁", beats: [], next: "intro" },
     { id: "exit", label: "✌️ EXIT TANK", emoji: "✌️", beats: [], next: "exit" },
   ],
