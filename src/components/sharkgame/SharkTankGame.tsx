@@ -124,9 +124,21 @@ export default function SharkTankGame({ onClose }: Props) {
         {/* Header */}
         <div className="relative z-10 flex items-center justify-between border-b-[3px] border-[hsl(var(--ink))] bg-accent px-4 py-2">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">{view.kind === "kbc" ? "🎬" : "🦈"}</span>
+            <span className="text-2xl">
+              {view.kind === "kbc" ? "🎬"
+                : view.kind === "playing" || view.kind === "choosing"
+                ? (view.nodeId === "drawer" ? "🌙"
+                  : view.nodeId === "court" || view.nodeId === "verdict" ? "⚖️"
+                  : "🦈")
+                : "🦈"}
+            </span>
             <h2 className="text-stroke text-base font-black tracking-wide text-white sm:text-xl">
-              {view.kind === "kbc" ? "KBC: MAGGI EDITION" : "SHARK TANK: MAGGI EDITION"}
+              {view.kind === "kbc" ? "LEVEL 3 — KBC: MAGGI EDITION"
+                : view.kind === "playing" || view.kind === "choosing"
+                ? (view.nodeId === "drawer" ? "LEVEL 1 — THE DRAWER"
+                  : view.nodeId === "court" || view.nodeId === "verdict" ? "LEVEL 4 — SUPREME COURT"
+                  : "LEVEL 2 — SHARK TANK")
+                : "MAGGI CINEMATIC UNIVERSE"}
             </h2>
           </div>
           <div className="flex items-center gap-1">
