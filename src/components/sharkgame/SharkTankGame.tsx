@@ -45,7 +45,7 @@ export default function SharkTankGame({ onClose }: Props) {
     o.stop(ctx.currentTime + dur);
   }, [muted]);
 
-  const startGame = () => { sfx(660, 0.15, "triangle"); enterNode("intro"); };
+  const startGame = () => { sfx(660, 0.15, "triangle"); enterNode("drawer"); };
 
   const enterNode = (nodeId: string) => {
     if (nodeId === "exit") { onClose(); return; }
