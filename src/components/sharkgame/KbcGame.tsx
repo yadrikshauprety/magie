@@ -3,6 +3,7 @@ import { KBC_ENDINGS, KBC_QUESTIONS, KbcOption, endingFromChaos } from "./kbcDat
 
 interface Props {
   onClose: () => void;
+  onComplete?: () => void;
   speak: (text: string, opts?: { lang?: string; pitch?: number; rate?: number; gender?: "male" | "female" }) => void;
 }
 
@@ -14,7 +15,7 @@ type View =
 
 const bachchanVoice = { lang: "hi-IN", pitch: 0.55, rate: 0.9, gender: "male" as const };
 
-export default function KbcGame({ onClose, speak }: Props) {
+export default function KbcGame({ onClose, onComplete, speak }: Props) {
   const [view, setView] = useState<View>({ kind: "intro" });
 
   useEffect(() => {
