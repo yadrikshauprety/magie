@@ -162,7 +162,7 @@ export default function SharkTankGame({ onClose }: Props) {
             />
           )}
           {view.kind === "kbc" && (
-            <KbcGame onClose={onClose} speak={speak} />
+            <KbcGame onClose={onClose} onComplete={() => enterNode("court")} speak={speak} />
           )}
         </div>
       </div>
